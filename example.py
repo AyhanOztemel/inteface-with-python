@@ -24,8 +24,7 @@ class MyClass:
     def roadmapp(self):
         print("Road map")
         
-        
-        
+    
 myClass=MyClass()
 myClass.roadmapp()
 myClass.languages()
