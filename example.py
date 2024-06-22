@@ -6,8 +6,8 @@ from interfaceDecarator import interface_decorator
 from interfaceClass import IClass
     
    
-@interface_decorator(IClass) #Implements the IClass interface
-class MyClass:
+@interface_decorator() 
+class MyClass(IClass):#Implements the IClass interface
     def method1(self):
         print("Method-1")
 
