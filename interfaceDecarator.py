@@ -1,29 +1,51 @@
-def interface_decorator():
-    import inspect
-    def decorator(cls):
+import inspect
+import re
+
+def interface(cls):
+    
+    if cls.__new__:                 
+            cls.__init__ = None  #Base class initializer cancel
+            
+    if not cls.__name__.startswith('I'):
+        raise ValueError("Interface class names must start with 'I'")
+    
+    for name, method in cls.__dict__.items():
         
-        # Get the base class (super class)
-        base_class = cls.__bases__[0]
-        
-        # Check if class is interface by name
-        is_abstract = base_class.__name__.startswith('I')
-        
-        # Get methods defined in the base class
-        interface_methods = {method_name for method_name, _ in inspect.getmembers(base_class, inspect.isfunction)}
-        print("interface_methods----->",interface_methods)
-               
-        # Get methods defined in the implemantation class
-        cls_methods = {method_name for method_name, _ in cls.__dict__.items() if inspect.isfunction(_)}
-        print("cls_methods----->",cls_methods)
-        
-        # is the base class  interface and the methods defined in the implemantation class
-        if is_abstract:
-            for method_name in interface_methods:
-               
-                if method_name not in cls_methods:
-                
-                    raise NotImplementedError(f"Concrete class {cls.__name__} does not implement method {method_name} defined in {base_class.__name__}")
-        else:
-                    raise NotImplementedError(f"Interface must start with I, {base_class.__name__} does not comply with interface definition")
+        if callable(method) and not name.startswith('__'):
+            # Check the source code of the method
+            source = inspect.getsource(method).strip()
+            # Remove spaces and newlines
+            source = ' '.join(source.split())
+            # Check if the method just has the format 'def method_name(self): pass
+            if not re.match(r'^def \w+\(self\): ?pass$', source):
+                raise ValueError(f"Method '{name}' in interface {cls.__name__} must only contain 'pass'")
+            
+            # Metodu işlevsiz hale getir
+            setattr(cls, name, lambda *args, **kwargs: None)
+    
+   
+    return cls
+           
+def interface_implement(cls):
+    def check_interface(cls):
+        def new_init(self):pass #Reverting base initializer instance
+            
+        cls.__init__ = new_init   
+        # Miras alınan sınıfları kontrol et
+        bases = [base for base in cls.__bases__ if base.__name__.startswith('I')]
+        if not bases:
+            raise TypeError(f"With @interface_implement the decore {cls.__name__} class must inherit an interface starting with 'I'.")
+
+        # Her bir miras alınan interface için
+        for base in bases:
+            # Interface'in tüm metodlarını kontrol et
+            for name, method in base.__dict__.items():
+                if callable(method) and not name.startswith('__'):
+                    # Eğer metod implement edilmemişse hata ver
+                    if name not in cls.__dict__:
+                        raise NotImplementedError(f"With @interface_implement, the decore {cls.__name__} class must implement the {name} method from the {base.__name__} interface.")
+        return True
+
+    if check_interface(cls):
         return cls
-    return decorator
+
